@@ -1,8 +1,10 @@
-> **Note for publishing on Medium:** reuse the same hero image as [Part 1](https://medium.com/@bulentg/building-a-personal-ai-agent-part-1-hello-agent-a0c9e66036a0) so the series has visual continuity.
+> **Note for publishing on Medium:** reuse the same hero image as [Part 1](https://medium.com/@bulentg/building-a-personal-ai-agent-part-1-hello-agent-a0c9e66036a0) for visual continuity. The sequence diagram in this post needs uploading to Medium separately — replace the local `./assets/` path with Medium's image embed.
 
 # Building a Personal AI Agent, Part 2: Memory
 
-*Part 2 of a series where we build a personal AI agent from scratch in Node.js, one capability at a time. [Part 1](https://medium.com/@bulentg/building-a-personal-ai-agent-part-1-hello-agent-a0c9e66036a0) covered the basic agent loop with web search.*
+*Part 2 of a series where I build a personal AI agent from scratch in Node.js, one capability at a time. [Part 1](https://medium.com/@bulentg/building-a-personal-ai-agent-part-1-hello-agent-a0c9e66036a0) covered the basic agent loop with web search.*
+
+> *This post was written with the assistance of an AI writing program (Claude). The ideas, code, and technical decisions are mine; AI helped structure and clarify the prose.*
 
 ---
 
@@ -21,23 +23,23 @@ What we're explicitly *not* doing: vector databases, embeddings, semantic search
 
 ---
 
-## The two questions everyone gets wrong
+## The two questions worth asking first
 
-When someone says "AI agent with memory", most engineers immediately think:
+When someone says "AI agent with memory", the default mental model is:
 
-1. **A vector database** (Pinecone, Chroma, Qdrant, pgvector…)
-2. **Embeddings** (OpenAI's `text-embedding-3-small`, Voyage, BGE…)
-3. **A retrieval pipeline** (chunk, embed, store, query-embed, cosine-similarity, top-k)
+1. A vector database (Pinecone, Chroma, Qdrant, pgvector…)
+2. Embeddings (OpenAI's `text-embedding-3-small`, Voyage, BGE…)
+3. A retrieval pipeline (chunk, embed, store, query-embed, cosine-similarity, top-k)
 
-This is the standard advice and it's almost always wrong for personal agents. It's the answer to a different question — "how do I do semantic search over a million documents?" — applied to a problem that doesn't have a million documents.
+That's the standard advice and it's almost always wrong for personal agents. It's the answer to a different question — "how do I do semantic search over a million documents?" — applied to a problem that doesn't have a million documents.
 
-The two questions I'd ask first are simpler.
+Two simpler questions get you a better answer.
 
 **How much will the agent actually remember?** Personal use is, maybe, a few hundred memories over a year. Your preferences, ongoing projects, people you mention, decisions you've made. SQLite handles a few hundred rows in microseconds. We don't need a vector index.
 
-**What does "memory" mean to the agent?** It's a *tool*. Not magic, not a hidden context window, not a retrieval pipeline running underneath. It's literally three functions the agent can choose to call: save, search, list. The agent decides when.
+**What does "memory" mean to the agent?** It's a tool. Not magic, not a hidden context window, not a retrieval pipeline running underneath. Three functions the agent can choose to call: save, search, list. The agent decides when.
 
-Once you frame it that way, the design becomes obvious. SQLite + a couple of indexes + good tool descriptions. Build that first. When (if) you actually outgrow it, you'll have data to inform the next step.
+Once you frame it that way, the design becomes obvious. SQLite, a couple of indexes, good tool descriptions. Build that first. When (if) you actually outgrow it, you'll have data to inform the next step.
 
 ---
 
@@ -102,7 +104,7 @@ export function searchMemories(query: string, limit = 5): Memory[] {
 
 Quoting each term means any FTS5 syntax characters left over (asterisks, carets) are treated as literals rather than operators — so the agent can pass whatever query it likes without us teaching it FTS5 syntax. The `ORDER BY rank` does the heavy lifting: even though every result *could* match, BM25 surfaces the ones that match best.
 
-**Why not jump to `sqlite-vec` for embeddings?** Because we don't have a problem yet. Premature optimisation looks the same whether the optimisation is a B-tree or a vector index. We'll know we need embeddings when keyword search demonstrably fails us — for example, when "what's my fave hot drink?" doesn't find the memory "user loves Earl Grey tea". That's when embeddings earn their keep. Until then, they're complexity for its own sake.
+**Why not jump to `sqlite-vec` for embeddings?** Because we don't have a problem yet. Premature optimisation looks the same whether the optimisation is a B-tree or a vector index. We'll know we need embeddings when keyword search demonstrably fails — for example, when "what's my fave hot drink?" doesn't find the memory "user loves Earl Grey tea". That's when embeddings earn their keep. Until then, they're complexity for its own sake.
 
 ---
 
@@ -141,11 +143,11 @@ const saveMemoryTool = tool(
 );
 ```
 
-**The descriptions are prompt engineering.** That text isn't documentation for me — it's instructions for the model. Every word in there is doing work.
+The descriptions are prompt engineering. That text isn't documentation for me, it's instructions for the model. Every word in there is doing work.
 
-"preferences, facts about them, decisions, ongoing projects, recurring people" — specific categories give the model anchors. Vague descriptions ("save important stuff") produce vague decisions. "Don't save trivia from search results" — without this, the agent will eagerly save the weather every time you ask about it. "If unsure, prefer saving — small over-recall is better than forgetting" is a *bias instruction*, telling the agent which way to err. Models follow these surprisingly well. And the "Good: ... Bad: ..." examples in the parameter description give the model concrete anchors. Concrete examples beat abstract rules.
+"Preferences, facts about them, decisions, ongoing projects, recurring people" — specific categories give the model anchors. Vague descriptions ("save important stuff") produce vague decisions. "Don't save trivia from search results" — without this, the agent will eagerly save the weather every time you ask about it. "If unsure, prefer saving — small over-recall is better than forgetting" is a *bias instruction*, telling the agent which way to err. Models follow these surprisingly well. And the "Good: … Bad: …" examples in the parameter description give the model concrete anchors. Concrete examples beat abstract rules.
 
-Try shipping a version without these descriptions and watch the difference. It's the single biggest lever in this whole post.
+Try shipping a version without these descriptions and watch the difference. In my testing it was the biggest lever in this whole post.
 
 ---
 
@@ -153,7 +155,7 @@ Try shipping a version without these descriptions and watch the difference. It's
 
 Before we wire the tools into the agent, here's the full flow when you ask "what sports team do I support?" and the agent retrieves the answer from memory:
 
-![Memory retrieval sequence diagram showing the flow from user prompt through the agent harness to the LLM, which decides to call search_memory, which queries SQLite FTS5, and the result flows back to compose a natural reply.](./assets/memory_retrieval_sequence_diagram.png)
+![Sequence diagram: user prompt → agent harness → LLM → search_memory tool → SQLite FTS5 → result back to LLM → reply.](./assets/memory_retrieval_sequence_diagram.png)
 
 Five participants. The user types into the CLI. The agent harness (the SDK's `query()` function) packages the prompt with the tool schemas and system prompt and sends it to the model. The model decides — autonomously — that this question warrants a memory search, and emits a `tool_use` block calling `search_memory("sports team")`. The harness routes that call to our in-process MCP tool, which tokenises the query and asks SQLite for the top BM25 matches. SQLite returns the Galatasaray row, the tool stringifies it, the result goes back to the model as a `tool_result`, and the model composes a natural reply from the row's contents.
 
@@ -194,7 +196,7 @@ for await (const message of query({
 })) { /* ... */ }
 ```
 
-The fully-qualified names (`mcp__memory__save_memory`) might look ugly, but they're how the SDK namespaces MCP tools to avoid collisions. We hide them behind a constant.
+The fully-qualified names (`mcp__memory__save_memory`) look ugly, but that's how the SDK namespaces MCP tools to avoid collisions. We hide them behind a constant.
 
 ---
 
@@ -258,9 +260,9 @@ The agent called `search_memory("morning drink")` (or similar), found the memory
 
 ## The tag consistency problem
 
-Here's a thing I promised would happen and it did: the agent invents inconsistent tags.
+One thing that came up after a few sessions: the agent invents inconsistent tags.
 
-After a few conversations, `list_recent_memories` showed me memories tagged variously:
+`list_recent_memories` showed me memories tagged variously:
 
 - `["preferences", "food"]`
 - `["preference", "drink"]`
@@ -269,13 +271,13 @@ After a few conversations, `list_recent_memories` showed me memories tagged vari
 
 All for memories about drinks. The agent did its best, but without seeing previous tags it had no way to be consistent. The tool description does say "reuse existing tags when possible — check `list_recent_memories` first if unsure", and sometimes the agent does. Often it doesn't.
 
-This is a real issue and it has three plausible fixes, ordered by effort:
+Three plausible fixes, ordered by effort:
 
 1. **Accept it.** FTS5 indexes the tags too, so searches still find the memories. Inconsistency is ugly but mostly cosmetic.
 2. **Inject the tag list into the system prompt.** Run a `SELECT DISTINCT` on tags at agent startup, paste them into the prompt as "existing tags include: x, y, z". This makes consistency much easier.
 3. **Drop tags entirely and trust FTS5.** The text body already contains all the searchable terms. Tags are belt-and-braces.
 
-For v1 I'm going with option 1 (accept it) and considering option 2 for a later post. Option 3 is honestly tempting and may be the right answer long-term — but worth showing the friction first, because it's a great teaching moment about how tool design affects emergent behaviour.
+For v1 I'm going with option 1 (accept it) and considering option 2 for a later post. Option 3 is honestly tempting and may be the right answer long-term — but worth showing the friction first, because it's a useful illustration of how tool design affects emergent behaviour.
 
 ---
 
