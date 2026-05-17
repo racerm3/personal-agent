@@ -2,7 +2,7 @@
 
 # Building a Personal AI Agent, Part 2: Memory
 
-*Part 2 of a series where I build a personal AI agent from scratch in Node.js, one capability at a time. [Part 1](https://medium.com/@bulentg/building-a-personal-ai-agent-part-1-hello-agent-a0c9e66036a0) covered the basic agent loop with web search.*
+*Part 2 of a series where I build a personal AI agent from scratch in Node.js, one capability at a time. [Part 1](https://medium.com/@bulentg/building-a-personal-ai-agent-part-1-hello-agent-c8f49dc5bba8) covered the basic agent loop with web search.*
 
 > *This post was written with the assistance of an AI writing program (Claude). The ideas, code, and technical decisions are mine; AI helped structure and clarify the prose.*
 

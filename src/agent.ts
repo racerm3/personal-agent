@@ -17,28 +17,44 @@ told you previously, search your memory first. When the user shares something
 worth remembering across conversations, save it. Be proactive about both.
 `.trim();
 
-export async function runAgent(userMessage: string): Promise<string> {
+const BASE_OPTIONS = {
+  systemPrompt: SYSTEM_PROMPT,
+  mcpServers: { memory: memoryMcpServer },
+  allowedTools: ["WebSearch", "WebFetch", ...memoryToolNames],
+  permissionMode: "bypassPermissions" as const,
+  maxTurns: 10,
+};
+
+async function runQuery(
+  userMessage: string,
+  sessionId?: string,
+): Promise<{ reply: string; sessionId: string }> {
   const chunks: string[] = [];
+  let outSessionId = "";
 
   for await (const message of query({
     prompt: userMessage,
-    options: {
-      systemPrompt: SYSTEM_PROMPT,
-
-      // Register the in-process MCP server that exposes our memory tools.
-      mcpServers: { memory: memoryMcpServer },
-
-      // Built-in tools + our three memory tools (fully-qualified names).
-      allowedTools: ["WebSearch", "WebFetch", ...memoryToolNames],
-
-      permissionMode: "bypassPermissions",
-      maxTurns: 10,
-    },
+    options: { ...BASE_OPTIONS, ...(sessionId ? { resume: sessionId } : {}) },
   })) {
     if (message.type === "result" && message.subtype === "success") {
       chunks.push(message.result);
+      outSessionId = message.session_id;
     }
   }
 
-  return chunks.join("\n").trim();
+  return { reply: chunks.join("\n").trim(), sessionId: outSessionId };
+}
+
+export async function runAgent(
+  userMessage: string,
+  sessionId?: string,
+): Promise<{ reply: string; sessionId: string }> {
+  if (sessionId) {
+    try {
+      return await runQuery(userMessage, sessionId);
+    } catch {
+      // Stale or deleted session — start fresh.
+    }
+  }
+  return runQuery(userMessage);
 }
