@@ -2,7 +2,7 @@
 
 # Building a Personal AI Agent, Part 3: Sessions
 
-*Part 3 of a series where I build a personal AI agent from scratch in Node.js, one capability at a time. [Part 1](https://medium.com/@bulentg/building-a-personal-ai-agent-part-1-hello-agent-c8f49dc5bba8) covered the basic agent loop. [Part 2](https://medium.com/@bulentg/building-a-personal-ai-agent-part-2-memory-sqlite-fts5) added long-term memory with SQLite + FTS5.*
+*Part 3 of a series where I build a personal AI agent from scratch in Node.js, one capability at a time. [Part 1](https://medium.com/@bulentg/building-a-personal-ai-agent-part-1-hello-agent-c8f49dc5bba8) covered the basic agent loop. [Part 2](https://medium.com/@bulentg/building-a-personal-ai-agent-part-2-memory-b101e5ce2c9e) added long-term memory with SQLite + FTS5.*
 
 > *This post was written with the assistance of an AI writing program (Claude). The ideas, code, and technical decisions are mine; AI helped structure and clarify the prose.*
 
