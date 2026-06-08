@@ -1,0 +1,39 @@
+{
+  "name": "personal-agent",
+  "description": "A personal AI agent built with the Claude Agent SDK",
+  "repository": "https://github.com/anthropics/personal-agent",
+  "stack": "heroku-24",
+  "buildpacks": [
+    { "url": "heroku/nodejs" }
+  ],
+  "formation": {
+    "web": { "quantity": 1, "size": "basic" }
+  },
+  "env": {
+    "LLM_PROVIDER": {
+      "description": "Which LLM backend to use: 'anthropic' or 'gemini'.",
+      "value": "anthropic"
+    },
+    "API_KEY": {
+      "description": "API key for the active provider (Anthropic or Gemini, depending on LLM_PROVIDER).",
+      "required": true
+    },
+    "LLM_MODEL": {
+      "description": "Optional model override. Provider defaults apply if unset.",
+      "required": false
+    },
+    "LLM_MAX_TURNS": {
+      "description": "Max agent loop turns per request (default 10).",
+      "value": "10",
+      "required": false
+    },
+    "EXTERNAL_MCP_URL": {
+      "description": "Optional remote MCP server URL (e.g. hello-mcp on CloudHub). Leave blank to disable.",
+      "required": false
+    },
+    "EXTERNAL_MCP_SERVER_NAME": {
+      "description": "Display/registration name for the external MCP server.",
+      "required": false
+    }
+  }
+}
