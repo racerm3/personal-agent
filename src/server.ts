@@ -6,6 +6,7 @@ import { dirname, resolve } from "node:path";
 import { runAgent, loadLlmConfig, formatLlmLabel } from "./agent.ts";
 import { loadExternalMcpConfig } from "./config/mcp.ts";
 import { tryListExternalToolNames } from "./mcp/external-client.ts";
+import { dispatchJsonRpc, buildAgentCard } from "./a2a.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = resolve(__dirname, "..", "public");
@@ -91,6 +92,20 @@ const server = createServer(async (req, res) => {
 
   if (method === "POST" && url === "/api/chat") {
     await handleChat(req, res);
+    return;
+  }
+
+  if (method === "GET" && url === "/.well-known/agent-card.json") {
+    const host = req.headers.host ?? `localhost:${PORT}`;
+    const proto =
+      (req.headers["x-forwarded-proto"] as string | undefined) ?? "http";
+    sendJson(res, 200, buildAgentCard(`${proto}://${host}`));
+    return;
+  }
+
+  if (method === "POST" && url === "/a2a") {
+    const response = await dispatchJsonRpc(await readBody(req));
+    sendJson(res, 200, response);
     return;
   }
 
