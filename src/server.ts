@@ -6,7 +6,7 @@ import { dirname, resolve } from "node:path";
 import { runAgent, loadLlmConfig, formatLlmLabel } from "./agent.ts";
 import { loadExternalMcpConfig } from "./config/mcp.ts";
 import { tryListExternalToolNames } from "./mcp/external-client.ts";
-import { dispatchJsonRpc, buildAgentCard } from "./a2a.ts";
+import { dispatchJsonRpc, buildAgentCard, rpcError } from "./a2a.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = resolve(__dirname, "..", "public");
@@ -104,8 +104,20 @@ const server = createServer(async (req, res) => {
   }
 
   if (method === "POST" && url === "/a2a") {
-    const response = await dispatchJsonRpc(await readBody(req));
-    sendJson(res, 200, response);
+    // Permissive Content-Type check: accept missing/odd types (lenient
+    // clients), reject clearly-wrong ones. JSON-RPC errors ride in the body
+    // at HTTP 200, not in the status line.
+    const ct = req.headers["content-type"];
+    if (ct && !ct.toLowerCase().includes("application/json")) {
+      sendJson(res, 200, rpcError(null, -32600, "Content-Type must be application/json"));
+      return;
+    }
+    try {
+      const response = await dispatchJsonRpc(await readBody(req));
+      sendJson(res, 200, response);
+    } catch {
+      sendJson(res, 200, rpcError(null, -32700, "Parse error"));
+    }
     return;
   }
 

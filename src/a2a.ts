@@ -63,7 +63,7 @@ function extractText(parts: unknown): string {
     .trim();
 }
 
-function rpcError(
+export function rpcError(
   id: string | number | null,
   code: number,
   message: string,
@@ -187,12 +187,12 @@ export async function dispatchJsonRpc(
     try {
       switch (r.method) {
         case "message/send": {
-          const { task, agentMessage } = await handleMessageSend(r.params);
-          // A2A allows returning either a Task or a Message; we return the
-          // final agent Message for simple synchronous interactions and
-          // include the task via the message's taskId for correlation.
-          void task;
-          return { jsonrpc: "2.0", id, result: agentMessage };
+          const { task } = await handleMessageSend(r.params);
+          // A2A allows returning either a Task or a Message. We return the
+          // Task so task-oriented clients (e.g. MuleSoft Agent Fabric) can
+          // read status.state, correlate by id, and follow up via tasks/get.
+          // The agent's reply rides along in status.message and history.
+          return { jsonrpc: "2.0", id, result: task };
         }
         case "tasks/get":
           return { jsonrpc: "2.0", id, result: handleTasksGet(r.params) };
@@ -223,6 +223,10 @@ export function buildAgentCard(baseUrl: string): unknown {
     version: "0.2.0",
     url: `${baseUrl}/a2a`,
     preferredTransport: "JSONRPC",
+    provider: {
+      organization: "personal-agent",
+      url: baseUrl,
+    },
     capabilities: {
       streaming: false,
       pushNotifications: false,
@@ -237,6 +241,7 @@ export function buildAgentCard(baseUrl: string): unknown {
         description:
           "General-purpose conversational agent with persistent sessions and tool access.",
         tags: ["chat", "assistant"],
+        examples: ["What can you help me with?"],
       },
     ],
   };
